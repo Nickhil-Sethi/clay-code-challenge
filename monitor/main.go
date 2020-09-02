@@ -32,20 +32,23 @@ var psqlInfo = fmt.Sprintf("host=%s port=%d user=%s "+
 	host, port, user, password)
 
 func main() {
+
+	// initialize the database
 	_, error := runMigrations()
 	if error != nil {
 		panic(error)
 	}
 
+	// monitor the endpoint
+	// in the background
 	monitor := endpointMonitor{
 		Endpoint:     apiEndpoint,
 		PollInterval: pollInterval,
 		connString:   psqlInfo,
 	}
-	// monitor the endpoint
-	// in the background
 	go monitor.Run()
 
+	// serve our diff request endpoint
 	http.HandleFunc("/", diffRequesthandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
