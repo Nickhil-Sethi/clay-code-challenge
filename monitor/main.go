@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	diff "github.com/sergi/go-diff/diffmatchpatch"
@@ -22,47 +20,24 @@ type apiResponse struct {
 
 const apiEndpoint = "https://api.clay.earth/api/v1/network/test/twitter/updates"
 const pollInterval = time.Second * 30
-
-func writeChangeEvents(events []userChangeEvent) {
-	fmt.Println(events)
-}
-
-func hitAPI() ([]userChangeEvent, error) {
-	resp, err := http.Get(apiEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var body = new(apiResponse)
-	decodeError := json.NewDecoder(
-		resp.Body).Decode(&body)
-
-	if decodeError != nil {
-		return nil, decodeError
-	}
-
-	results := body.Results
-	return results, nil
-}
-
-func monitorEndpoint() {
-	for {
-		results, err := hitAPI()
-		if err != nil {
-			fmt.Println(err.Error())
-			time.Sleep(2 * pollInterval)
-			continue
-		}
-		writeChangeEvents(results)
-		time.Sleep(pollInterval)
-	}
-}
+const (
+	host     = ""
+	port     = 5432
+	user     = "postgres"
+	password = ""
+)
 
 func main() {
-	runMigrations()
-	monitorEndpoint()
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s sslmode=disable",
+		host, port, user, password)
 
+	monitor := endpointMonitor{
+		Endpoint:     apiEndpoint,
+		PollInterval: pollInterval,
+		connString:   psqlInfo,
+	}
+
+	monitor.Run()
 	diff.New()
-
 }
