@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"time"
-
-	diff "github.com/sergi/go-diff/diffmatchpatch"
 )
 
 type userChangeEvent struct {
@@ -27,17 +27,25 @@ const (
 	password = ""
 )
 
+var psqlInfo = fmt.Sprintf("host=%s port=%d user=%s "+
+	"password=%s sslmode=disable",
+	host, port, user, password)
+
 func main() {
-	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s sslmode=disable",
-		host, port, user, password)
+	_, error := runMigrations()
+	if error != nil {
+		panic(error)
+	}
 
 	monitor := endpointMonitor{
 		Endpoint:     apiEndpoint,
 		PollInterval: pollInterval,
 		connString:   psqlInfo,
 	}
+	// monitor the endpoint
+	// in the background
+	go monitor.Run()
 
-	monitor.Run()
-	diff.New()
+	http.HandleFunc("/", diffRequesthandler)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

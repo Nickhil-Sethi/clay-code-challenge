@@ -29,19 +29,21 @@ func (m *endpointMonitor) writeChangeEvents(events []userChangeEvent) {
 	defer conn.Close()
 	for _, evt := range events {
 		timestamp, _ := m.parseTimestamp(evt.Created)
-		result, err := conn.Exec(`INSERT INTO user_bios (
+		_, err := conn.Exec(`INSERT INTO user_change_events (
 				username,
 				created,
-				content
+				content,
+				type
 			) VALUES (
 				$1,
 				$2,
-				$3
-			);`, evt.Username, timestamp, evt.Content)
+				$3,
+				$4
+			) ON CONFLICT DO NOTHING;`,
+			evt.Username, timestamp, evt.Content, evt.Type)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Print(result)
 	}
 }
 
