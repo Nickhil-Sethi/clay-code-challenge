@@ -2,14 +2,19 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
+	"net/url"
 
 	diff "github.com/sergi/go-diff/diffmatchpatch"
 )
 
-func getLastTwo(
+const errorHTML = "<body>Oops! Something's wrong. Try again later.</body>"
+const badRequestHTML = "<body>Bad request. Check that you have both username and mode parameters</body>"
+const notFoundHTML = "<body>No events found for that user and mode.</body>"
+
+func getLastTwoEvents(
 	conn *sql.DB,
 	username string,
 	mode string) ([]string, error) {
@@ -39,64 +44,94 @@ func getLastTwo(
 		}
 		returnRows = append(returnRows, c)
 	}
-
-	if len(returnRows) == 0 {
-		return nil, errors.New("Not found")
-	}
 	return returnRows, nil
 }
 
-func sendHTTPError(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("500 - Something bad happened!"))
+func sendHTTPResponse(
+	w http.ResponseWriter, status int, body template.HTML) {
+	w.WriteHeader(status)
+	w.Write([]byte(body))
+}
+
+func getDiffHTML(before string, after string) string {
+	diffEngine := diff.New()
+
+	// compute the diff
+	diffs := diffEngine.DiffMain(
+		before, after, false)
+
+	// clean up the diff
+	diffs = diffEngine.DiffCleanupSemantic(
+		diffs)
+
+	// Stock function returns pretty HTML
+	html := diffEngine.DiffPrettyHtml(diffs)
+	return fmt.Sprintf("<body>%s</body>", html)
+}
+
+func validateQuery(query url.Values) bool {
+	username := query.Get("username")
+	if username == "" {
+		return false
+	}
+
+	mode := query.Get("mode")
+	if mode == "" {
+		return false
+	}
+	return true
 }
 
 func diffRequesthandler(w http.ResponseWriter, r *http.Request) {
 	conn, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
-		sendHTTPError(w)
+		sendHTTPResponse(
+			w,
+			http.StatusInternalServerError,
+			errorHTML)
 		return
 	}
 
 	query := r.URL.Query()
-	fmt.Println(r.URL, query)
+	if !validateQuery(query) {
+		sendHTTPResponse(
+			w,
+			http.StatusBadRequest,
+			badRequestHTML)
+		return
+	}
+
+	// extract query parameters
 	username := query.Get("username")
-	if username == "" {
-		fmt.Println("username not present", username)
-		sendHTTPError(w)
-		return
-	}
-
 	mode := query.Get("mode")
-	if mode == "" {
-		fmt.Println("mode not present")
-		sendHTTPError(w)
-		return
-	}
 
-	// generalize this to be URL parameters
-	lastTwo, queryErr := getLastTwo(
+	// get the last two events of the
+	// mode requested for this user
+	events, queryErr := getLastTwoEvents(
 		conn, username, mode)
 
 	if queryErr != nil {
-		sendHTTPError(w)
+		sendHTTPResponse(
+			w,
+			http.StatusInternalServerError,
+			errorHTML)
 		return
 	}
 
-	if len(lastTwo) == 0 {
-		sendHTTPError(w)
-		return
+	switch len(events) {
+	case 0:
+		sendHTTPResponse(
+			w,
+			http.StatusNotFound,
+			notFoundHTML)
+	case 1:
+		// pretty print HTML
+		html := getDiffHTML(events[1], "")
+		fmt.Fprintf(w, "<body>%s</body>", html)
+	case 2:
+		html := getDiffHTML(events[1], events[0])
+		fmt.Fprintf(w, "<body>%s</body>", html)
 	}
 
-	if len(lastTwo) < 2 {
-		fmt.Fprintf(w, lastTwo[0])
-		return
-
-	}
-	diffEngine := diff.New()
-	diffs := diffEngine.DiffMain(lastTwo[1], lastTwo[0], false)
-	diffs = diffEngine.DiffCleanupSemantic(diffs)
-	html := diffEngine.DiffPrettyHtml(diffs)
-	fmt.Fprintf(w, "<body>%s</body>", html)
 	return
 }

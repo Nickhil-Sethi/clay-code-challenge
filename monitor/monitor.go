@@ -22,14 +22,20 @@ func (m *endpointMonitor) parseTimestamp(timestring string) (time.Time, error) {
 }
 
 func (m *endpointMonitor) writeChangeEvents(events []userChangeEvent) {
-	conn, err := sql.Open("postgres", m.connString)
+	conn, err := sql.Open(
+		"postgres",
+		m.connString)
+
 	if err != nil {
 		panic(err)
 	}
+
 	defer conn.Close()
+
 	for _, evt := range events {
 		timestamp, _ := m.parseTimestamp(evt.Created)
-		_, err := conn.Exec(`INSERT INTO user_change_events (
+		_, err := conn.Exec(
+			`INSERT INTO user_change_events (
 				username,
 				created,
 				content,
@@ -41,6 +47,7 @@ func (m *endpointMonitor) writeChangeEvents(events []userChangeEvent) {
 				$4
 			) ON CONFLICT DO NOTHING;`,
 			evt.Username, timestamp, evt.Content, evt.Type)
+
 		if err != nil {
 			panic(err)
 		}
