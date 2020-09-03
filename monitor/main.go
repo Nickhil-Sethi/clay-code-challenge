@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -20,11 +21,12 @@ type apiResponse struct {
 
 const apiEndpoint = "https://api.clay.earth/api/v1/network/test/twitter/updates"
 const pollInterval = time.Second * 30
-const (
-	host     = ""
+
+var (
+	host     = os.Getenv("DB_ENDPOINT")
 	port     = 5432
 	user     = "postgres"
-	password = ""
+	password = os.Getenv("DB_PASS")
 )
 
 var psqlInfo = fmt.Sprintf("host=%s port=%d user=%s "+
