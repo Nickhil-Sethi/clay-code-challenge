@@ -127,10 +127,10 @@ func diffRequesthandler(w http.ResponseWriter, r *http.Request) {
 	case 1:
 		// pretty print HTML
 		html := getDiffHTML(events[1], "")
-		fmt.Fprintf(w, "<body>%s</body>", html)
+		fmt.Fprintf(w, html)
 	case 2:
 		html := getDiffHTML(events[1], events[0])
-		fmt.Fprintf(w, "<body>%s</body>", html)
+		fmt.Fprintf(w, html)
 	}
 
 	return

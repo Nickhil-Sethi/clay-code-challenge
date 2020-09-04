@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -27,7 +28,7 @@ func (m *endpointMonitor) writeChangeEvents(events []userChangeEvent) {
 		m.connString)
 
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	defer conn.Close()
@@ -49,7 +50,7 @@ func (m *endpointMonitor) writeChangeEvents(events []userChangeEvent) {
 			evt.Username, timestamp, evt.Content, evt.Type)
 
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 	}
 }
