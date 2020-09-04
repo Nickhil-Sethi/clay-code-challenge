@@ -37,16 +37,22 @@ How to scale this product depends entirely on the needs that evolve after deploy
 
 1. The diff API needs to be available nearly all the time.
 2. Moderate delays in accuracy of the data are tolerable.
-3. The Twitter API has rate limits we can't get around.
-4. Demand for diffs is 'bursty' i.e. we experience sudden spikes in traffic asking for the same query.
+
+What other behavior can we expect at scale? Twitter itself deals with highly 'bursty' reads, e.g. a celebrity tweets something controversial and suddenly demand spikes to read their profile. I imagine we would deal with this ourselves. 
+
+Here are some strategies I'd take when scaling this system:
 
 #### Break out reading from writing
 
-The API server needs to be available, but AWS reserves the right to terminate any EC2 instance at any time, for any reason. On top of that, Golang's garbage collector can take out a server for a couple seconds, or a hard disk can fail, etc.
+The API server needs to be available nearly 24/7, so we need to have more than one EC2 instance sitting behind a load balancer. AWS reserves the right to terminate any EC2 instance at any time, for any reason. On top of that, Golang's garbage collector can take out a server for a couple seconds, or a hard disk can fail, or an entire availability zone can go down (if unlikely, it happens).
 
-Thus we need to have more than one application server sitting behind a load balancer; however, this requires us to break out the monitor loop into it's own service, otherwise we have a large number of unnecessary workers polling the same data.
+However, this requires us to break out the monitor loop into it's own worker pool -- otherwise we have a large number of unnecessary workers polling the same data.
 
-### Deleting old data
+In other words, we break out the system that reads the data from the system that writes the data -- a very common pattern. This is often done at the database level as well, i.e. one database that receives writes only and one database that receives reads. 
+
+As mentioned earlier, a nice side-effect of this stategy is improved ability to serve bursty reads i.e. a spike in demand for one user's data. The read pipeline can handle bursty data more effecitvely; the read-only database can cache frequently accessed data more effectively than it would if it had to handle both reads and writes.
+
+#### Deleting old data
 
 Postgres databases I've worked with tend to have performance issues when dealing with tables of about `1 billion` or more rows. At that point, we'd start to think about a partition schema. 
 
