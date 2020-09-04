@@ -54,9 +54,11 @@ As mentioned earlier, a nice side-effect of this stategy is improved ability to 
 
 #### Deleting old data
 
-Postgres databases I've worked with tend to have performance issues when dealing with tables of about `1 billion` or more rows. At that point, we'd start to think about a partition schema. 
+Postgres databases I've worked with tend to have performance issues when dealing with tables of about `1 billion` or more rows. Index cruft begins to develop, and queries take longer times.
 
-### Security
+At that point, we'd start to think about a partition schema which allows for bulk deletes and prevents cruft. Older data is probably less frequently access, and so partitioning time into months and periodically deleting the oldest month might be helpful. 
+
+#### Security
 
 Given more time, I'd tighten up a couple security holes. In particular, SQL injection isn't prevented against here.
 
