@@ -13,7 +13,6 @@ RUN go get github.com/sergi/go-diff/diffmatchpatch
 RUN CGO_ENABLED=0 go build -o /bin/monitor
 
 # Add metadata to the image to describe which port the container is listening on at runtime.
-EXPOSE 8080:8080
+EXPOSE 8080
 
 ENTRYPOINT /bin/monitor
-
