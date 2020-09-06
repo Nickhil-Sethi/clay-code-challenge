@@ -70,6 +70,8 @@ Resources:
       StorageEncrypted: false
       AllocatedStorage: 5
 
+  
+
   EC2Instance:
     Type: AWS::EC2::Instance
     Properties:
@@ -77,7 +79,14 @@ Resources:
       SecurityGroups: [!Ref 'WebServerSecurityGroup']
       KeyName: !Ref 'KeyName'
       ImageId: 'ami-0841edc20334f9287'
-
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          sudo yum install -y docker
+          sudo service docker start
+          sudo docker pull nickhilsethi/clay-diff-service:latest
+          sudo docker run -d -p 80:8080 -e DB_USER=${DatabaseUser} -e DB_PASS=${DatabasePassword} -e DB_ENDPOINT=${Database.Endpoint.Address} nickhilsethi/clay-diff-service:latest
+        
 Outputs:
   Name:
     Description: RDS Stack Name
