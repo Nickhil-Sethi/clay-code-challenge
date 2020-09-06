@@ -11,7 +11,7 @@ Parameters:
     ConstraintDescription: must be the name of an existing EC2 KeyPair.
   
   DatabaseUser:
-    Default: startupadmin
+    Default: postgres
     Type: String
     Description: Database admin account name
     MinLength: 5
