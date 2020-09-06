@@ -25,7 +25,7 @@ const pollInterval = time.Second * 30
 var (
 	host     = os.Getenv("DB_ENDPOINT")
 	port     = 5432
-	user     = "postgres"
+	user     = os.Getenv("DB_USER")
 	password = os.Getenv("DB_PASS")
 )
 
