@@ -52,5 +52,5 @@ func main() {
 
 	// serve our diff request endpoint
 	http.HandleFunc("/", diffRequesthandler)
-	log.Fatal(http.ListenAndServe(":80", nil))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
