@@ -1,19 +1,19 @@
 # Use the official image as a parent image.
-FROM golang
+FROM golang AS build
 
 # Set the working directory.
-WORKDIR app
+WORKDIR /monitor/
 
 # Copy the file from your host to your current location.
-COPY monitor .
+COPY ./monitor/*.go /monitor/
 
 # Run the command inside your image filesystem.
 RUN go get github.com/lib/pq
 RUN go get github.com/sergi/go-diff/diffmatchpatch
-RUN go build .
+RUN CGO_ENABLED=0 go build -o /bin/monitor
 
 # Add metadata to the image to describe which port the container is listening on at runtime.
 EXPOSE 8080
 
-# Run the specified command within the container.
-CMD [ "./monitor" ]
+ENTRYPOINT /bin/monitor
+
