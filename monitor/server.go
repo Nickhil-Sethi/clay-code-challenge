@@ -2,11 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
 	diff "github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -53,6 +55,20 @@ func sendHTTPResponse(
 	w.Write([]byte(body))
 }
 
+func getDiffs(before string, after string) []diffmatchpatch.Diff {
+	diffEngine := diff.New()
+
+	// compute the diff
+	diffs := diffEngine.DiffMain(
+		before, after, false)
+
+	// clean up the diff
+	diffs = diffEngine.DiffCleanupSemantic(
+		diffs)
+
+	return diffs
+}
+
 func getDiffHTML(before string, after string) string {
 	diffEngine := diff.New()
 
@@ -80,6 +96,57 @@ func validateQuery(query url.Values) bool {
 		return false
 	}
 	return true
+}
+
+func diffRequestHandlerJSON(w http.ResponseWriter, r *http.Request) {
+	conn, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		sendHTTPResponse(
+			w,
+			http.StatusInternalServerError,
+			errorHTML)
+		return
+	}
+
+	query := r.URL.Query()
+	if !validateQuery(query) {
+		sendHTTPResponse(
+			w,
+			http.StatusBadRequest,
+			badRequestHTML)
+		return
+	}
+
+	// extract query parameters
+	username := query.Get("username")
+	mode := query.Get("mode")
+
+	// get the last two events of the
+	// mode requested for this user
+	events, queryErr := getLastTwoEvents(
+		conn, username, mode)
+
+	if queryErr != nil {
+		sendHTTPResponse(
+			w,
+			http.StatusInternalServerError,
+			errorHTML)
+		return
+	}
+
+	// compute json
+	// write json
+	diffs := getDiffs(events[1], events[0])
+	bytes, err := json.Marshal(diffs)
+	if err != nil {
+		panic(err)
+	}
+	// set Header content-type: application/json
+	w.Header().Set(
+		"Content-Type",
+		"application/json")
+	fmt.Fprintf(w, string(bytes))
+
 }
 
 func diffRequesthandler(w http.ResponseWriter, r *http.Request) {

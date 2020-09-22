@@ -51,6 +51,6 @@ func main() {
 	go monitor.Run()
 
 	// serve our diff request endpoint
-	http.HandleFunc("/", diffRequesthandler)
+	http.HandleFunc("/", diffRequestHandlerJSON)
 	log.Fatal(http.ListenAndServe("0.0.0.0:8080", nil))
 }
